@@ -1,0 +1,941 @@
+	 /*
+	 Copyright(C) Written by James Sager III 2003-2013
+Compiles under CrystalSpace 3d: http://www.crystalspace3d.org/main/Main_Page
+Tutorial Demo: https://www.youtube.com/watch?v=SBbDRRGdKvs
+*/
+
+#include "crystalspace.h"
+#include "math.h"
+#include "iImageHelper.h"
+
+int
+getred (iImage * image, int x, int y)
+{
+  return ((csRGBpixel *) image->GetImageData ())[y * image->GetWidth () +
+						 x].red;
+}
+
+int
+getgreen (iImage * image, int x, int y)
+{
+  return ((csRGBpixel *) image->GetImageData ())[y * image->GetWidth () +
+						 x].green;
+}
+
+int
+getblue (iImage * image, int x, int y)
+{
+  return ((csRGBpixel *) image->GetImageData ())[y * image->GetWidth () +
+						 x].blue;
+}
+
+int
+getalpha (iImage * image, int x, int y)
+{
+  return ((csRGBpixel *) image->GetImageData ())[y * image->GetWidth () +
+						 x].alpha;
+}
+
+
+
+
+
+void
+setred (iImage * image, int x, int y, int red)
+{
+//  if (image)
+  ((csRGBpixel *) image->GetImageData ())[y * image->GetWidth () + x].red =
+    red;
+
+}
+
+void
+setgreen (iImage * image, int x, int y, int green)
+{
+  ((csRGBpixel *) image->GetImageData ())[y * image->GetWidth () + x].green =
+    green;
+}
+
+void
+setblue (iImage * image, int x, int y, int blue)
+{
+  ((csRGBpixel *) image->GetImageData ())[y * image->GetWidth () + x].blue =
+    blue;
+}
+
+void
+setalpha (iImage * image, int x, int y, int alpha)
+{
+  ((csRGBpixel *) image->GetImageData ())[y * image->GetWidth () + x].alpha =
+    alpha;
+}
+
+void
+blit (iImage * source, iImage * dest, int destx, int desty)
+{
+  blit (source, dest, 0, 0, destx, desty, source->GetWidth (),
+	source->GetHeight ());
+}
+
+
+//This Blit conserves the alpha, Blit_merge blends the alphaed color in with background.
+void
+blit (iImage * source, iImage * dest, int source_startx, int source_starty,
+      int destx, int desty, int source_endx, int source_endy)
+{
+  int x;
+  int y;
+  int r, g, b;
+  int i, j;
+  int a;
+
+  x = dest->GetWidth ();
+  y = dest->GetHeight ();
+
+
+  if (source_endx + destx - source_startx >= x)
+    source_endx = x - destx + source_startx;
+
+
+  if (source_endy + desty - source_starty >= y)
+    source_endy = y - desty + source_starty;
+
+
+  i = 0;
+  j = 0;
+  for (x = source_startx; x < source_endx; x++)
+    {
+      for (y = source_starty; y < source_endy; y++)
+	{
+	  r = getred (source, x, y);
+	  g = getgreen (source, x, y);
+	  b = getblue (source, x, y);
+	  a = getalpha (source, x, y);
+
+
+	  setred (dest, i + destx, j + desty, r);
+	  setgreen (dest, i + destx, j + desty, g);
+	  setblue (dest, i + destx, j + desty, b);
+	  setalpha (dest, i + destx, j + desty, a);
+	  j++;
+	}
+      j = 0;
+      i++;
+    }
+
+
+
+}
+
+
+
+
+
+void
+blit_transparent (iImage * source, iImage * dest, int destx, int desty,
+		  int r2, int g2, int b2)
+{
+  blit_transparent (source, dest, 0, 0, destx, desty, source->GetWidth (),
+		    source->GetHeight (), r2, g2, b2, 10);
+}
+
+void
+blit_transparent (iImage * source, iImage * dest, int destx, int desty,
+		  int r2, int g2, int b2, int range)
+{
+  blit_transparent (source, dest, 0, 0, destx, desty, source->GetWidth (),
+		    source->GetHeight (), r2, g2, b2, range);
+}
+
+void
+blit_transparent (iImage * source, iImage * dest, int source_startx,
+		  int source_starty, int destx, int desty, int source_endx,
+		  int source_endy, int r0, int g0, int b0, int range)
+{
+  int x;
+  int y;
+  int r, g, b;
+  int i, j;
+
+  int r2, g2, b2;
+  x = dest->GetWidth ();
+  y = dest->GetHeight ();
+
+
+  if (source_endx + destx - source_startx >= x)
+    source_endx = x - destx + source_startx;
+
+
+  if (source_endy + desty - source_starty >= y)
+    source_endy = y - desty + source_starty;
+
+
+
+  i = 0;
+  j = 0;
+  for (x = source_startx; x < source_endx; x++)
+    {
+      for (y = source_starty; y < source_endy; y++)
+	{
+	  r = getred (source, x, y);
+	  g = getgreen (source, x, y);
+	  b = getblue (source, x, y);
+
+	  r2 = abs (r0 - r);
+	  g2 = abs (g0 - g);
+	  b2 = abs (b0 - b);
+
+
+	  if (r2 < range && g2 < range && b2 < range)
+	    {
+	      r = r0;
+	      setalpha (dest, i + destx, j + desty, 0);
+	    }
+	  else
+	    {
+	      setred (dest, i + destx, j + desty, r);
+	      setgreen (dest, i + destx, j + desty, g);
+	      setblue (dest, i + destx, j + desty, b);
+	      setalpha (dest, i + destx, j + desty, 255);
+
+	    }
+	  j++;
+	}
+      j = 0;
+      i++;
+    }
+
+
+
+}
+
+
+void
+remove_red (iImage * source)
+{
+  int x;
+  int y;
+  int i, j;
+
+  x = source->GetWidth ();
+  y = source->GetHeight ();
+
+  for (i = 0; i < x; i++)
+    for (j = 0; j < y; j++)
+      setred (source, i, j, 0);
+}
+
+void
+remove_green (iImage * source)
+{
+  int x;
+  int y;
+  int i, j;
+
+  x = source->GetWidth ();
+  y = source->GetHeight ();
+
+  for (i = 0; i < x; i++)
+    for (j = 0; j < y; j++)
+      setgreen (source, i, j, 0);
+}
+
+void
+remove_blue (iImage * source)
+{
+  int x;
+  int y;
+//check if its out of range yourself :P
+//int r,g,b;
+  int i, j;
+
+//int r2,g2,b2;
+  x = source->GetWidth ();
+  y = source->GetHeight ();
+
+  for (i = 0; i < x; i++)
+    for (j = 0; j < y; j++)
+      setblue (source, i, j, 0);
+}
+
+
+
+void
+blit_alpha (iImage * source, iImage * dest, int destx, int desty)
+{
+  blit_alpha (source, dest, 0, 0, destx, desty, source->GetWidth (),
+	      source->GetHeight (), 1);
+}
+
+void
+blit_alpha (iImage * source, iImage * dest, int destx, int desty, int range)
+{
+  blit_alpha (source, dest, 0, 0, destx, desty, source->GetWidth (),
+	      source->GetHeight (), range);
+}
+
+void
+blit_alpha (iImage * source, iImage * dest, int source_startx,
+	    int source_starty, int destx, int desty, int source_endx,
+	    int source_endy, int range)
+{
+  int x;
+  int y;
+//check if its out of range yourself :P
+  int r, g, b, a;
+  int i, j;
+
+//int r2,g2,b2;
+  x = dest->GetWidth ();
+  y = dest->GetHeight ();
+
+
+  if (source_endx + destx - source_startx >= x)
+    source_endx = x - destx + source_startx;
+
+
+  if (source_endy + desty - source_starty >= y)
+    source_endy = y - desty + source_starty;
+
+
+  i = 0;
+  j = 0;
+  for (x = source_startx; x < source_endx; x++)
+    {
+      for (y = source_starty; y < source_endy; y++)
+	{
+	  r = getred (source, x, y);
+	  g = getgreen (source, x, y);
+	  b = getblue (source, x, y);
+	  a = getalpha (source, x, y);
+
+
+	  if (a - range < 1)
+	    {
+	    }
+	  else
+	    {
+	      setred (dest, i + destx, j + desty, r);
+	      setgreen (dest, i + destx, j + desty, g);
+	      setblue (dest, i + destx, j + desty, b);
+	    }
+	  j++;
+	}
+      j = 0;
+      i++;
+    }
+
+
+
+}
+
+	//sux
+void
+invert_brightness (iImage * source)
+{
+  int i, j;
+  int r, g, b;
+//float bright;
+
+  for (i = 0; i < source->GetWidth (); i++)
+    for (j = 0; j < source->GetHeight (); j++)
+      {
+	r = getred (source, i, j);
+	g = getgreen (source, i, j);
+	b = getblue (source, i, j);
+	r = 255 - r;
+	g = 255 - g;
+	b = 255 - b;
+
+	setred (source, i, j, r);
+	setgreen (source, i, j, g);
+	setblue (source, i, j, b);
+
+
+      }
+
+
+}
+
+
+void
+swap_blue_to_green (iImage * source)
+{
+  int i, j;
+  int r, g, b;
+//float bright;
+
+  for (i = 0; i < source->GetWidth (); i++)
+    for (j = 0; j < source->GetHeight (); j++)
+      {
+	r = getred (source, i, j);
+	g = getgreen (source, i, j);
+	b = getblue (source, i, j);
+
+	setred (source, i, j, r);
+	setgreen (source, i, j, b);
+	setblue (source, i, j, g);
+      }
+
+}
+
+void
+swap_blue_to_red (iImage * source)
+{
+  int i, j;
+  int r, g, b;
+//float bright;
+
+  for (i = 0; i < source->GetWidth (); i++)
+    for (j = 0; j < source->GetHeight (); j++)
+      {
+	r = getred (source, i, j);
+	g = getgreen (source, i, j);
+	b = getblue (source, i, j);
+
+	setred (source, i, j, b);
+	setgreen (source, i, j, g);
+	setblue (source, i, j, r);
+      }
+
+}
+
+
+
+void
+swap_red_to_green (iImage * source)
+{
+  int i, j;
+  int r, g, b;
+//float bright;
+
+  for (i = 0; i < source->GetWidth (); i++)
+    for (j = 0; j < source->GetHeight (); j++)
+      {
+	r = getred (source, i, j);
+	g = getgreen (source, i, j);
+	b = getblue (source, i, j);
+
+	setred (source, i, j, g);
+	setgreen (source, i, j, r);
+	setblue (source, i, j, b);
+
+
+      }
+
+}
+
+
+
+void
+alter_colors (iImage * source, int o_r, int o_g, int o_b, int r2, int g2,
+	      int b2)
+{
+  int i, j;
+  int r, g, b;
+//float bright;
+
+
+//int red_ratio;
+//int green_ratio;
+//int blue_ratio;
+
+
+
+
+  for (i = 0; i < source->GetWidth (); i++)
+    for (j = 0; j < source->GetHeight (); j++)
+      {
+	r = getred (source, i, j);
+	g = getgreen (source, i, j);
+	b = getblue (source, i, j);
+
+//bright=sqrt(r*r+g*g+b*b);
+
+	setred (source, i, j, (int)(r2 * sqrt (o_r * r + o_g * g + o_b * b) / 255)  );
+	setgreen (source, i, j,(int)(
+		  g2 * sqrt (o_r * r + o_g * g + o_b * b) / 255));
+   	setblue (source, i, j,(int)(b2 * sqrt (o_r * r + o_g * g + o_b * b) / 255));
+      }
+
+}
+
+//the except is where you have a 0...
+//if o_r ==0 and o_g>0 and o_b>0 rng=10 no colors with red greater than 10 will be replaced
+void
+alter_colors_except (iImage * source, int o_r, int o_g, int o_b, int r2,
+		     int g2, int b2, int rng)
+{
+
+  int i, j;
+  int r, g, b;
+
+  int ok;
+
+
+
+  for (i = 0; i < source->GetWidth (); i++)
+    for (j = 0; j < source->GetHeight (); j++)
+      {
+	ok = 1;
+	r = getred (source, i, j);
+	g = getgreen (source, i, j);
+	b = getblue (source, i, j);
+
+	if (o_r == 0)
+	  if (r > rng)
+	    ok = 0;
+
+	if (o_g == 0)
+	  if (g > rng)
+	    ok = 0;
+
+	if (o_b == 0)
+	  if (b > rng)
+	    ok = 0;
+
+
+
+
+	if (ok == 1)
+	  {
+	    setred (source, i, j,(int)(
+		    r2 * sqrt (o_r * r + o_g * g + o_b * b) / 255));
+	    setgreen (source, i, j,(int)(
+		      g2 * sqrt (o_r * r + o_g * g + o_b * b) / 255));
+	    setblue (source, i, j,(int)(
+		     b2 * sqrt (o_r * r + o_g * g + o_b * b) / 255));
+	  }
+
+      }
+
+}
+
+
+//freak math, NOOO MY EYES
+
+//RNG is the times difference
+void
+alter_colors_ratio (iImage * source, int o_r, int o_g, int o_b, int r2,
+		    int g2, int b2, int rng)
+{
+
+  int i, j;
+  int r, g, b;
+
+//int a1;
+//float bright;
+//int r3,g3,b3;
+
+  float rg_rat, gb_rat, br_rat;
+
+//Which way do the ratio's face:
+  int rg_way = -1, gb_way = -1, br_way = -1;
+
+
+  float rg_fly=0;
+  float gb_fly, br_fly;
+
+
+  int ok;
+
+//Rat values: 0 - none of one element
+// greater than 0: green is greater than red
+// less than 0: red is less than green -inverse 1/ number- greater than...
+
+// greater than 0: How many times difference
+
+//compare: times difference, against current times difference, and see if within range
+
+  if (o_r == 0)
+    rg_rat = 0;
+  else
+    {
+      rg_rat = o_g / o_r;
+      if (rg_rat < 0)
+	{
+	  rg_rat = 1 / rg_rat;
+	  rg_way = 1;
+	}
+
+    }
+
+  if (o_g == 0)
+    gb_rat = 0;
+  else
+    {
+      gb_rat = o_b / o_g;
+      if (gb_rat < 0)
+	{
+	  gb_rat = 1 / gb_rat;
+	  gb_way = 1;
+	}
+
+    }
+
+  if (o_b == 0)
+    br_rat = 0;
+  else
+    {
+      br_rat = o_r / o_b;
+      if (br_rat < 0)
+	{
+	  br_rat = 1 / br_rat;
+	  br_way = 1;
+	}
+    }
+
+
+
+
+  for (i = 0; i < source->GetWidth (); i++)
+    for (j = 0; j < source->GetHeight (); j++)
+      {
+	ok = 1;
+	r = getred (source, i, j);
+	g = getgreen (source, i, j);
+	b = getblue (source, i, j);
+
+
+
+
+//Check which way rg goes
+	if (rg_way == -1)
+	  {
+//everything is cool if 0's.0 stops division by 0
+	    if (r == 0)
+	      {
+		if (o_r > 0)
+		  ok = 0;
+	      }
+	    else
+	      {
+		rg_fly = g / r;
+//make sure we got green to red, and not red to green(insta failure for now)
+//invert and negatize it, so its on a scale goin the other direction
+		if (rg_fly < 0)
+		  rg_fly = -(1 / rg_fly);
+		rg_fly = abs ((int)(rg_fly - rg_rat));
+		if (rg_fly > rng)
+		  ok = 0;
+	      }
+	  }
+
+	if (rg_way == 1)
+	  {
+	    rg_fly = r / g;
+	    if (rg_fly < 0)
+	      rg_fly = -(1 / rg_fly);
+	    rg_fly = abs ((int)(rg_fly - rg_rat));
+	    if (rg_fly > rng)
+	      ok = 0;
+	  }
+
+
+
+
+	if (gb_way == -1)
+	  {
+//everything is cool if 0's.0 stops division by 0
+	    if (g == 0)
+	      {
+		if (o_g > 0)
+		  ok = 0;
+	      }
+	    else
+	      {
+		gb_fly = b / g;
+//make sure we got green to red, and not red to green(insta failure for now)
+//invert and negatize it, so its on a scale goin the other direction
+		if (gb_fly < 0)
+		  gb_fly = -(1 / gb_fly);
+		gb_fly = abs ((int)(gb_fly - gb_rat));
+		if (gb_fly > rng)
+		  ok = 0;
+	      }
+	  }
+
+	if (gb_way == 1)
+	  {
+	    gb_fly = g / b;
+	    if (rg_fly < 0)
+	      gb_fly = -(1 / gb_fly);
+	    gb_fly = abs ((int)(gb_fly - gb_rat));
+	    if (gb_fly > rng)
+	      ok = 0;
+	  }
+
+
+	if (br_way == -1)
+	  {
+//everything is cool if 0's.0 stops division by 0
+	    if (b == 0)
+	      {
+		if (o_b > 0)
+		  ok = 0;
+	      }
+	    else
+	      {
+		br_fly = r / b;
+//make sure we got green to red, and not red to green(insta failure for now)
+//invert and negatize it, so its on a scale goin the other direction
+		if (br_fly < 0)
+		  br_fly = -(1 / br_fly);
+		br_fly = abs ((int)(br_fly - br_rat));
+		if (br_fly > rng)
+		  ok = 0;
+	      }
+	  }
+
+	if (br_way == 1)
+	  {
+	    br_fly = b / r;
+	    if (rg_fly < 0)
+	      br_fly = -(1 / br_fly);
+	    br_fly = abs ((int)(br_fly - br_rat));
+	    if (br_fly > rng)
+	      ok = 0;
+	  }
+
+
+
+	if (ok == 1)
+	  {
+	    setred (source, i, j,(int)(
+		    r2 * sqrt (o_r * r + o_g * g + o_b * b) / 255));
+	    setgreen (source, i, j,(int)(
+		      g2 * sqrt (o_r * r + o_g * g + o_b * b) / 255));
+	    setblue (source, i, j,(int)(
+		     b2 * sqrt (o_r * r + o_g * g + o_b * b) / 255));
+	  }
+
+      }
+
+}
+
+
+//draws a rectangle_filled with colors r,g,b
+void
+rect (iImage * dest, int x, int y, int end_x, int end_y, int r, int g, int b)
+{
+  int i, j;
+//float bright;
+//int r3,g3,b3;
+
+  for (i = x; i < end_x + 1; i++)
+    for (j = y; j < end_y + 1; j++)
+      {
+
+	setred (dest, i, j, r);
+	setgreen (dest, i, j, g);
+	setblue (dest, i, j, b);
+	setalpha (dest, i, j, 255);
+
+
+      }
+
+}
+
+//0,200,200 is nice cyan
+//draws an open rectangle
+void
+rect_open (iImage * dest, int x, int y, int end_x, int end_y, int r, int g,
+	   int b)
+{
+  int i, j;
+//top bar
+  j = y;
+  for (i = x; i < end_x + 1; i++)
+    {
+      setred (dest, i, j, r);
+      setgreen (dest, i, j, g);
+      setblue (dest, i, j, b);
+      setalpha (dest, i, j, 255);
+    }
+//bottom bar
+  j = end_y;
+  for (i = x; i < end_x + 1; i++)
+    {
+      setred (dest, i, j, r);
+      setgreen (dest, i, j, g);
+      setblue (dest, i, j, b);
+      setalpha (dest, i, j, 255);
+    }
+
+  i = x;
+  for (j = y; j < end_y + 1; j++)
+    {
+      setred (dest, i, j, r);
+      setgreen (dest, i, j, g);
+      setblue (dest, i, j, b);
+      setalpha (dest, i, j, 255);
+    }
+
+  i = end_x;
+  for (j = y; j < end_y + 1; j++)
+    {
+      setred (dest, i, j, r);
+      setgreen (dest, i, j, g);
+      setblue (dest, i, j, b);
+      setalpha (dest, i, j, 255);
+    }
+
+
+}
+
+
+
+void
+clear_image (iImage * dest)
+{
+  int i, j;
+
+
+  for (i = 0; i < dest->GetWidth (); i++)
+    for (j = 0; j < dest->GetHeight (); j++)
+      {
+	setred (dest, i, j, 0);
+	setgreen (dest, i, j, 0);
+	setblue (dest, i, j, 0);
+	setalpha (dest, i, j, 0);
+
+
+      }
+
+}
+
+
+
+void
+cbox (iImage * dest, int x, int y, int end_x, int end_y, int r, int g, int b)
+{
+  int r2, g2, b2;
+
+  r2 = r + 100;
+  g2 = g + 100;
+  b2 = b + 100;
+  if (r2 > 255)
+    r2 = 255;
+  if (g2 > 255)
+    g2 = 255;
+  if (b2 > 255)
+    b2 = 255;
+
+
+  rect_open (dest, x, y, end_x, end_y, r2, g2, b2);
+
+
+  r2 = r + 75;
+  g2 = g + 75;
+  b2 = b + 75;
+  if (r2 > 255)
+    r2 = 255;
+  if (g2 > 255)
+    g2 = 255;
+  if (b2 > 255)
+    b2 = 255;
+
+
+  rect_open (dest, x + 1, y + 1, end_x - 1, end_y - 1, r2, g2, b2);
+
+
+  r2 = r + 50;
+  g2 = g + 50;
+  b2 = b + 50;
+  if (r2 > 255)
+    r2 = 255;
+  if (g2 > 255)
+    g2 = 255;
+  if (b2 > 255)
+    b2 = 255;
+
+
+  rect_open (dest, x + 2, y + 2, end_x - 2, end_y - 2, r2, g2, b2);
+
+  r2 = r + 25;
+  g2 = g + 25;
+  b2 = b + 25;
+  if (r2 > 255)
+    r2 = 255;
+  if (g2 > 255)
+    g2 = 255;
+  if (b2 > 255)
+    b2 = 255;
+
+
+  rect_open (dest, x + 3, y + 3, end_x - 3, end_y - 3, r2, g2, b2);
+
+
+
+  rect (dest, x + 4, y + 4, end_x - 4, end_y - 4, r, g, b);
+
+
+
+}
+
+
+
+void
+dbox (iImage * dest, int x, int y, int end_x, int end_y, int r, int g, int b)
+{
+  int r2, g2, b2;
+
+  r2 = r + 100;
+  g2 = g + 100;
+  b2 = b + 100;
+  if (r2 > 255)
+    r2 = 255;
+  if (g2 > 255)
+    g2 = 255;
+  if (b2 > 255)
+    b2 = 255;
+
+  rect (dest, x + 4, y + 4, end_x - 4, end_y - 4, r2, g2, b2);
+
+
+
+  r2 = r + 75;
+  g2 = g + 75;
+  b2 = b + 75;
+  if (r2 > 255)
+    r2 = 255;
+  if (g2 > 255)
+    g2 = 255;
+  if (b2 > 255)
+    b2 = 255;
+
+
+  rect_open (dest, x + 3, y + 3, end_x - 3, end_y - 3, r2, g2, b2);
+
+
+  r2 = r + 50;
+  g2 = g + 50;
+  b2 = b + 50;
+  if (r2 > 255)
+    r2 = 255;
+  if (g2 > 255)
+    g2 = 255;
+  if (b2 > 255)
+    b2 = 255;
+
+
+  rect_open (dest, x + 2, y + 2, end_x - 2, end_y - 2, r2, g2, b2);
+
+  r2 = r + 25;
+  g2 = g + 25;
+  b2 = b + 25;
+  if (r2 > 255)
+    r2 = 255;
+  if (g2 > 255)
+    g2 = 255;
+  if (b2 > 255)
+    b2 = 255;
+
+
+  rect_open (dest, x + 1, y + 1, end_x - 1, end_y - 1, r2, g2, b2);
+
+
+  rect_open (dest, x, y, end_x, end_y, r, g, b);
+
+
+}

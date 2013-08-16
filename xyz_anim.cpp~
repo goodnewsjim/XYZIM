@@ -1,0 +1,454 @@
+
+/*
+    Copyright (C) 2001 by Jorrit Tyberghein
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Library General Public
+    License as published by the Free Software Foundation; either
+    version 2 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Library General Public License for more details.
+
+    You should have received a copy of the GNU Library General Public
+    License along with this library; if not, write to the Free
+    Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*/
+
+#include "cssysdef.h"
+//#include "cssys/sysfunc.h"
+#include "iutil/vfs.h"
+#include "csutil/cscolor.h"
+#include "cstool/csview.h"
+#include "cstool/initapp.h"
+//#include "simple2.h"
+#include "iutil/eventq.h"
+#include "iutil/event.h"
+#include "iutil/objreg.h"
+//#include "iutil/csinput.h"
+#include "iutil/virtclk.h"
+#include "iutil/string.h"
+
+#include "iengine/sector.h"
+#include "iengine/engine.h"
+#include "iengine/camera.h"
+#include "iengine/light.h"
+//#include "iengine/statlght.h"
+#include "iengine/texture.h"
+#include "iengine/mesh.h"
+#include "iengine/movable.h"
+#include "iengine/material.h"
+
+//#include "imesh/thing/polygon.h"
+//#include "imesh/thing/thing.h"
+#include "imesh/sprite3d.h"
+#include "imesh/object.h"
+
+
+
+
+
+
+#include "ivideo/graph3d.h"
+#include "ivideo/graph2d.h"
+#include "ivideo/txtmgr.h"
+#include "ivideo/texture.h"
+#include "ivideo/material.h"
+#include "ivideo/fontserv.h"
+#include "igraphic/imageio.h"
+//#include "imap/parser.h"
+#include "imap/saver.h"
+#include "ivaria/reporter.h"
+#include "ivaria/stdrep.h"
+#include "csutil/cmdhelp.h"
+
+
+
+#include "csgeom/transfrm.h"
+//#include "csgeom/quaterni.h"
+//jim hmods
+#include "ivaria/conin.h"
+#include "ivaria/conout.h"
+
+
+#include "iengine/campos.h"
+//#include "csengine/campos.h"
+
+//jim mod2s
+//#include "csinput.h"
+
+#include "cstool/cspixmap.h"
+
+// Includes
+#include "igraphic/image.h"
+
+#include "iFileHelper.h"
+
+
+#include "string.h"
+#include "xyz_anim.h"
+#include "crystalspace.h"
+
+void ANIM_STEP::set_name(char *c1)
+{
+if(name!=NULL)
+delete name;
+
+name=new(char[strlen(c1)+1]);
+strcpy(name,c1);
+}
+
+char *ANIM_STEP::get_name(void)
+{
+return name;
+}
+
+
+void ANIM_FRAME::do_frame(float time0,XYZ_HASH *model)
+{
+//printf("aaaaaaaaight\n");
+int i;
+float f0;
+char *c;
+float phi=0;
+HASHNODE *H;
+iMeshWrapper *MW;
+csQuaternion Q4;
+
+//float zero=1;
+
+f0=time;
+f0=f0/1000;
+//percentage here :)
+time0=time0/f0;
+
+
+printf("frame steps: %d",steps);
+printf("Time: %2.2f\n",time0);
+
+for(i=0;i<steps;i++)
+{
+c=AS[i]->get_name();
+//if(strcmp(c,"")==0)
+//printf("null\n");
+printf(c);
+printf(" - do_frame\n");
+H=model->find_node(c);
+MW=H->MW;
+
+//printf(c);
+//printf(" : ");
+csVector3 v1,v2;
+//Original matrix
+if(AS[i]->is_m==1)
+{
+//old csQuaternion Q1(H->m);
+	  csQuaternion Q1;
+	Q1.SetMatrix (H->m);
+
+//csQuaternion Q3(AS[i]->rot);
+csQuaternion Q3;
+Q3.SetMatrix(AS[i]->rot);
+
+//OLD CODE Q4=Q1.Slerp(Q3,time0);
+Q4=Q1.SLerp(Q3,time0);
+csMatrix3 mm(Q4);
+
+
+
+
+
+//if(v1.x && v1.y && v1.z)
+//{
+MW->GetMovable()->SetTransform(mm);
+MW->GetMovable()->UpdateMove();
+}
+//}
+
+//MW->GetMovable()->GetTransform ().RotateThis (v1,time0/7);
+
+if(AS[i]->is_v==1)
+{
+v1=H->v;
+v2=AS[i]->pos;
+
+v1.x=v1.x+(v2.x-v1.x)*time0;
+v1.y=v1.y+(v2.y-v1.y)*time0;
+v1.z=v1.z+(v2.z-v1.z)*time0;
+MW->GetMovable()->SetPosition(v1);
+MW->GetMovable()->UpdateMove();
+
+}
+
+//if(AS[i]->is_m==1)
+//MW->GetMovable()->SetTransform((AS[i]->rot + MW->GetMovable()->GetTransform().GetT2O())/2);
+
+//MW->GetMovable()->SetTransform((AS[i]->rot + H->m)/2);
+
+
+
+
+}
+
+
+
+
+
+}
+
+
+ANIM_FRAME::ANIM_FRAME(int t1, int s1)
+{
+  int i;
+  steps=s1;
+  time=t1;
+//printf("Steps %d",s1);  
+AS = (ANIM_STEP **) malloc (steps * sizeof(ANIM_STEP*));
+ for(i=0;i<steps;i++)
+  AS[i]=NULL;
+
+//This could speed shit up if you manage constructors/destructors manually(instead of new)
+//Thank Eudaemon-csSaver guy
+// AS[i]=((unsigned int)&AS[steps])+(i*sizeof(ANIM_STEP));
+  //But we decided new is better
+
+}
+
+
+ANIM_XYZ::ANIM_XYZ(int s1)
+{
+  int i;
+  max_frames=s1;
+  AF = (ANIM_FRAME **) malloc (max_frames * sizeof(ANIM_FRAME*));
+ for(i=0;i<max_frames;i++)
+   AF[i]=NULL;
+//This could speed shit up if you manage constructors/destructors manually(instead of new)
+//Thank Eudaemon-csSaver guy
+// AS[i]=((unsigned int)&AS[steps])+(i*sizeof(ANIM_STEP));
+  //But we decided new is better
+}
+
+/*
+ANIM_XYZ *XYZ=new ANIM_XYZ(1);
+ANIM_FRAME *FRAME=new ANIM_FRAME(1,2);
+ANIM_STEP *STEP1,*STEP2;
+
+STEP1=new(ANIM_STEP);
+STEP2=new(ANIM_STEP);
+
+STEP1->set_name("hey");
+STEP2->set_name("hey2");
+
+FRAME->AS[0]=STEP1;
+FRAME->AS[1]=STEP2;
+
+XYZ->AF[0]=FRAME;
+
+
+printf(XYZ->AF[0]->AS[0]->get_name());
+printf("\n");
+printf(XYZ->AF[0]->AS[1]->get_name());
+printf("\n");
+
+total cleanup of all news:
+delete XYZ;
+*/
+
+
+//fn =filename
+
+ANIM_XYZ::ANIM_XYZ(iFile *F1)
+{
+csRef<iMeshList> ML;
+csRef<iMeshWrapper> MW;
+csRef<iFile> F2;
+//csRef<iStrVector> SV;
+csRef<iStringArray> SA;
+
+//int max;
+char c1[5000];
+//char c2[500];
+//char c3[200];
+//char c5[500];
+//bool b;
+int i,j;
+//int match=0;
+//int a;
+
+//int frame;
+int move;
+int time;
+
+M_V_MOVE MV;
+
+
+ANIM_FRAME *f;
+ANIM_STEP *s;
+
+
+//printf("eh\n");
+
+max_frames=Parse_frames(F1);
+
+  AF = (ANIM_FRAME **) malloc (max_frames * sizeof(ANIM_FRAME*));
+
+//printf("frames =%d\n",max_frames);
+
+for(i=0;i<max_frames;i++)
+{
+move=Parse_moved(F1);
+printf("moved =%d\n",move);
+
+time=Parse_time(F1);
+f=new ANIM_FRAME(time,move);
+AF[i]=f;
+for(j=0;j<move;j++)
+{
+s=new ANIM_STEP;
+f->AS[j]=s;
+strcpy(c1,Parse_meshobj(F1));
+//printf(c1);  printf(c1);
+//printf(c1);
+
+//printf("\n");
+s->set_name(c1);
+MV=Parse_move(F1);
+s->is_m=MV.is_m;
+s->is_v=MV.is_v;
+s->pos=MV.v;
+s->rot=MV.m;
+}
+}
+
+//printf("done\n");
+
+}
+
+
+ANIM_FRAME *ANIM_XYZ::get_frame(float &time)
+{
+int i;
+float tf;
+for(i=0;i<max_frames;i++)
+{
+tf=AF[i]->time;
+tf=tf/1000;
+if(time<tf)
+return AF[i];
+time=time-tf;
+}
+//means time elapsed past final frame...
+//So prolly want to mature it to final frame or something...
+//or Return to regular scheduled programming.
+printf("null");
+return NULL;
+
+
+
+
+
+}
+
+
+int ANIM_XYZ::get_frame_number(float time)
+{
+int i;
+float tf;
+for(i=0;i<max_frames;i++)
+{
+tf=AF[i]->time;
+tf=tf/1000;
+if(time<tf)
+return i;
+time=time-tf;
+}
+//means time elapsed past final frame...
+//So prolly want to mature it to final frame or something...
+//or Return to regular scheduled programming.
+return -1;
+
+
+
+
+
+}
+
+
+
+void ANIM_XYZ::update_hash_model(float time, XYZ_HASH *model)
+{
+int i,j;
+int steps_taken;
+int t22=get_frame_number(time);
+char *c;
+HASHNODE *H;
+//If the current frame in time is now ahead, the base skeleton needs to
+//be advanced(this is where the original is kept)
+if(t22<0)
+t22=max_frames;
+//printf("11max frames %d\n",max_frames);
+//printf("11curstep: %d\n",model->cur_step);
+
+
+printf("Current frame number:%d\n",t22);
+
+if(t22>model->cur_step)
+{
+
+
+steps_taken=t22-model->cur_step;
+
+printf("steps taken: %d\n",steps_taken);
+//printf("curstep: %d\n",model->cur_step);
+
+
+//UPDATE MODEL!
+//update csVector3/csMatrix3 sequentially
+for(i=0;i<steps_taken;i++)
+{
+//Normally only 1 step is taken, but maybe lag or super fast animations and low rendering
+//speed means more than one happens.
+
+//Gotta grab all info in AF[model->curstep], and apply it to model
+//printf("AF: %d, model->cur_step %d, i%d\n",AF[model->cur_step+i]->steps,model->cur_step,i);
+//printf("i should be 1 %d \n",i);
+for(j=0;j<AF[model->cur_step]->steps;j++)
+{
+c=AF[model->cur_step]->AS[j]->get_name();
+printf(c);
+printf("/n");
+H=model->find_node(c);
+
+if(AF[model->cur_step]->AS[j]->is_v==1)
+{
+//set origin
+H->v=AF[model->cur_step]->AS[j]->pos;
+//ALSO update position:setposition
+H->MW->GetMovable()->SetPosition(H->v);
+}
+
+if(AF[model->cur_step]->AS[j]->is_m==1)
+{
+printf(c);
+printf(":CHANGED MATRIX\n");
+
+H->m=AF[model->cur_step]->AS[j]->rot;
+//also update matrix setmatrix
+H->MW->GetMovable()->SetTransform(H->m);
+}
+
+H->MW->GetMovable()->UpdateMove();
+
+
+}
+model->cur_step++;
+
+
+}//end of a step.
+
+
+}///end it actually mattering
+printf("exiting\n");
+}

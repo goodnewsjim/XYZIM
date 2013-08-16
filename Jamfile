@@ -1,0 +1,10 @@
+SubDir TOP src ;
+
+Description xyzim : "Xyzim Animation Maker" ;
+Application xyzim :
+  [ Wildcard *.h *.hpp *.hxx *.H *.c *.cc *.cpp *.cxx *.C *.m *.mm *.M ] ;
+ExternalLibs xyzim : CRYSTAL ;
+if $(CEL.DESIRED) = yes && $(CEL.AVAILABLE) = yes
+{
+  ExternalLibs xyzim : CEL ;
+}

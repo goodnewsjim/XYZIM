@@ -1,0 +1,174 @@
+/*
+ * appxyzim.h
+ *
+ * Declaration of AppXyzim, the main application object.
+ */
+
+#ifndef __appxyzim_h
+#define __appxyzim_h
+
+#include "xyzim.h"
+#include <crystalspace.h>
+
+class AppXyzim :
+  public csApplicationFramework, public csBaseEventHandler
+{
+private:
+
+  /// A pointer to the 3D renderer plugin.
+  csRef<iGraphics3D> g3d;
+
+  /// A pointer to the keyboard driver.
+  csRef<iKeyboardDriver> kbd;
+
+  /// A pointer to the 3D engine plugin.
+  csRef<iEngine> engine;
+  
+  /// A pointer to the loader plugin.
+  csRef<iLoader> loader;
+
+  /// A pointer to the virtual clock.
+  csRef<iVirtualClock> vc;
+
+  /// A pointer to the collision detection system.
+  csRef<iCollideSystem> cdsys;
+
+  /// A pointer to the view which contains the camera.
+  csRef<iView> view;
+
+  /// A pointer to the frame printer.
+  csRef<FramePrinter> printer;
+
+  /// A pointer to the configuration manager.
+  csRef<iConfigManager> cfgmgr;
+
+  /// A pointer to the sector the camera will be in.
+  iSector* sector;
+
+  /// Our collider used for gravity and CD (collision detection).
+  csColliderActor collider_actor;
+
+  /// Load the 'world' file in the given VFS map directory.
+  bool LoadMap (const char* path);
+
+  /// Setup stuff after map loading.
+  bool PostLoadMap ();
+
+  /// Load a library file with the given VFS path.
+  bool LoadLibrary (const char* path);
+
+  /**
+   * Set up everything that needs to be rendered on screen.  This routine is
+   * called from the event handler in response to a csevFrame event.
+   */
+  virtual void Frame();
+  
+  /**
+   * Handle keyboard events, such as key presses and releases.  This routine is
+   * called from the event handler in response to a csevKeyboard event.
+   */
+  virtual bool OnKeyboard(iEvent&);
+
+  /**
+   * This method is called by Frame ().
+   * It was separated so it's easy to remove or customize it.
+   */
+  void DoStuffOncePerFrame ();
+
+  /* Stuff from original xyzim application */
+  /// Current orientation of the camera.
+  float rotX, rotY;
+  //UNDO
+  csRef<iVFS> FS;
+
+  csRef<iMouseDriver> mos;
+
+public:
+
+  /* Stuff from original xyzim application */
+  int S_index;
+  char S_mesh[200][199];
+  bool SetupModules ();
+  //  ADD STUFF HERE
+  void selected(iMeshWrapper *MW);
+  void paint_all_white(void);
+  void paint_white_and_children(iSceneNodeArray *SNA);
+  void paint_green_and_children(iSceneNodeArray *SNA);
+  void check_input(void);
+  void check_input2(void);
+  void disconnect_mesh(iMeshWrapper *MW);
+  void connect_mesh(iMeshWrapper *MW);
+  void connect_mesh2(void);
+  int is_b_childof_a(iMeshWrapper *MWP,iMeshWrapper *MWC);
+  void saveundo(void);
+  void save_skeleton(char *directory, char *filename);
+  void save_skeleton2(char *directory, char *filename);
+  int get_plugin(char *meshname);
+  void print_plugins(void);
+  void save_skeleton_sub1(iMeshWrapper *MWP,iFile *F1);
+  void insert_plugin(char *meshname,char *pluginname,iFile *F1);
+  void Load_Plugins(char *filename);
+  int new_aframe(void);
+  int count_aframe(void);
+  void loadundo(void);
+  void load_skeleton(char *directory, char *filename);
+  void loadredo(void);
+
+  void CreateRoom ();
+
+//big jump
+void handle_popup_events(void);
+void play_animation(int start_frame,int end_frame);
+void copyit(char *read, char *write);
+void save_animation2(char *directory, char *filename);
+int count_animation_sub1(iMeshWrapper *MWP);
+void save_animation_sub1(iMeshWrapper *MWP,iFile *F1);
+int count_children(iMeshWrapper *MWP);
+int is_hashed(char *c1);
+
+char *check_expand_string(char *c2);
+void load_animation(char *directory, char *filename);
+void save_animation(char *directory, char *filename);
+
+void check_input3(void);
+void load_mesh(char *c1);
+
+  /**
+   * Constructor.
+   */
+  AppXyzim();
+
+  /**
+   * Destructor.
+   */
+  virtual ~AppXyzim();
+
+  /**
+   * Final cleanup.
+   */
+  virtual void OnExit();
+
+  /**
+   * Main initialization routine.  This routine should set up basic facilities
+   * (such as loading startup-time plugins, etc.).  In case of failure this
+   * routine will return false.  You can assume that the error message has been
+   * reported to the user.
+   */
+  virtual bool OnInitialize(int argc, char* argv[]);
+
+  /**
+   * Run the application.  Performs additional initialization (if needed), and
+   * then fires up the main run/event loop.  The loop will fire events which
+   * actually causes Crystal Space to "run".  Only when the program exits does
+   * this function return.
+   */
+  virtual bool Application();
+  
+  /* Declare the name by which this class is identified to the event scheduler.
+   * Declare that we want to receive the frame event in the "LOGIC" phase,
+   * and that we're not terribly interested in having other events
+   * delivered to us before or after other modules, plugins, etc. */
+  CS_EVENTHANDLER_PHASE_LOGIC("application.xyzim")    
+};
+
+#endif // __appxyzim_h

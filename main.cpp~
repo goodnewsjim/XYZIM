@@ -1,0 +1,29 @@
+/*
+ * main.cpp
+ *
+ * Main entry point for xyzim.
+ */
+
+#include "xyzim.h"
+#include "appxyzim.h"
+#include <csutil/sysfunc.h> // Provides csPrintf()
+
+CS_IMPLEMENT_APPLICATION
+
+int main(int argc, char** argv)
+{
+  csPrintf ("xyzim version 1.0 by Jim Sager.\n");
+
+  /* Runs the application.  
+   *
+   * csApplicationRunner<> cares about creating an application instance 
+   * which will perform initialization and event handling for the entire game. 
+   *
+   * The underlying csApplicationFramework also performs some core 
+   * initialization.  It will set up the configuration manager, event queue, 
+   * object registry, and much more.  The object registry is very important, 
+   * and it is stored in your main application class (again, by 
+   * csApplicationFramework). 
+   */
+  return csApplicationRunner<AppXyzim>::Run (argc, argv);
+}
